@@ -31,26 +31,26 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
             {
                 System.out.println("Timeout");
                 toBeMatchedList.remove(name);
-                return null;
+                return "TimeOutNull";
             }
         }
         String partner1 = toBeMatchedList.remove(0);
         String partner2 = toBeMatchedList.remove(0);
         if (name.equals(partner1))
         {
-            return partner2;
+            return "p2";
         }
         else if (name.equals(partner2))
         {
-            return partner1;
+            return "p1";
         }
         System.out.println("Here");
-        return null;
+        return "EndNull";
     }
     @Override
     public String PrintHello(String name) throws RemoteException {
         System.out.println("Hello from Server to " + name);
-        return null;
+        return "Hello from Server to " + name;
     }
 
     public static void main(String args[])
