@@ -15,6 +15,8 @@ public class Main {
         ProcessBuilder builder = new ProcessBuilder(
                 javaBin, "-cp", classpath, className);
         builder.redirectErrorStream();
+        builder.redirectError(ProcessBuilder.Redirect.INHERIT);
+        builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 
         try {
             Process process = builder.start();
@@ -34,6 +36,7 @@ public class Main {
         }
         for (int i = 0; i < 4; i++) {
             Process process = processes.remove(0);
+            /*
             InputStreamReader inputStreamReader = new InputStreamReader(
                     process.getInputStream()
             );
@@ -45,7 +48,7 @@ public class Main {
             }catch (IOException ioe)
             {
                 ioe.printStackTrace();
-            }
+            }*/
         }
     }
 }
