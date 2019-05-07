@@ -27,7 +27,14 @@ public class Client extends UnicastRemoteObject implements ClientInterface
     public void handShake(String partnerName) throws NotBoundException, AccessException, RemoteException
     {
         ClientInterface myPartner = (ClientInterface) myRegistry.lookup(partnerName);
+        myPartner.sendMessage("Hello from " + myName);
     }
+    @Override
+    public void sendMessage(String message) throws RemoteException
+    {
+        System.out.println(message);
+    }
+
     public static void main(String args[])
     {
         //System.setSecurityManager(new RMISecurityManager());

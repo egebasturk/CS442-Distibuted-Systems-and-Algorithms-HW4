@@ -11,7 +11,7 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
     //private ArrayList<String> toBeMatchedList;
     private List<String>  toBeMatchedList;
     private HashMap<String , String > clients;
-    final private Integer ListLock = new Integer(1);
+    final private Integer listLock = new Integer(1);
     private Registry myRegistry;
 
     public Server() throws RemoteException
@@ -27,31 +27,43 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
         long start = System.nanoTime();
         long elapsedTime = (System.nanoTime() - start) / (int)Math.pow(10,9);
         toBeMatchedList.add(name);
-
-        String partner1 = "NON", partner2 = "NON";
-
-        while (elapsedTime < timeoutSecs)
+        synchronized (listLock)
         {
-            elapsedTime = (System.nanoTime() - start) / (int)Math.pow(10,9);
-            synchronized (ListLock)
+            if (toBeMatchedList.size() > 1)
             {
-                if (toBeMatchedList.size() >= 2)
-                {
-                    partner1 = toBeMatchedList.remove(0);
-                    partner2 = toBeMatchedList.remove(0);
 
-                    if (name.equals(partner1))
-                    {
-                        return partner2;
-                    }
-                    else
-                    {
-                        return partner1;
-                    }
+            }
+            else{
+                try {
+                    wait(timeoutSecs);
+                }catch (InterruptedException ie)
+                {
+
                 }
             }
         }
-        synchronized (ListLock){
+
+        String partner1 = "NON", partner2 = "NON";
+        return null;
+        /*while (elapsedTime < timeoutSecs)
+        {
+            elapsedTime = (System.nanoTime() - start) / (int)Math.pow(10,9);
+            if (toBeMatchedList.size() >= 2)
+            {
+                partner1 = toBeMatchedList.remove(0);
+                partner2 = toBeMatchedList.remove(0);
+
+                if (name.equals(partner1))
+                {
+                    return partner2;
+                }
+                else
+                {
+                    return partner1;
+                }
+            }
+        }
+        synchronized (listLock){
             toBeMatchedList.remove(name);
             try {
                 myRegistry.unbind(name);
@@ -60,7 +72,7 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
                 e.printStackTrace();
             }
         }
-        return null;
+        return null;*/
         /*while (toBeMatchedList.size() < 2)
         {
             long elapsedTime = (System.nanoTime() - start) / (int)Math.pow(10,9);
@@ -72,7 +84,7 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
                 return "TimeOutNull";
             }
         }
-        synchronized (ListLock) {
+        synchronized (listLock) {
             String partner2 = toBeMatchedList.remove(1);
             String partner1 = toBeMatchedList.remove(0);
             if (name.equals(partner1)) {
