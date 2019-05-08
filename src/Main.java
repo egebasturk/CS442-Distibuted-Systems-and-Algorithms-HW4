@@ -1,3 +1,9 @@
+/**
+ * @author Alp Ege Basturk
+ * Driver program which adds 4 clients to test the server
+ * Warning: This is buggy, and also leaves zombies
+ * */
+
 import java.io.*;
 import java.util.ArrayList;
 
@@ -33,22 +39,6 @@ public class Main {
         for (int i = 0; i < 5; i++) {
             Process process = initClient();
             processes.add(process);
-        }
-        for (int i = 0; i < 5; i++) {
-            //Process process = processes.remove(0);
-            /*
-            InputStreamReader inputStreamReader = new InputStreamReader(
-                    process.getInputStream()
-            );
-            BufferedReader bufferedReader = new BufferedReader(
-                    inputStreamReader
-            );
-            try {
-                System.out.println(bufferedReader.readLine());
-            }catch (IOException ioe)
-            {
-                ioe.printStackTrace();
-            }*/
         }
     }
 }

@@ -1,3 +1,8 @@
+/**
+ * @author Alp Ege Basturk
+ * RMI Cient Interface
+ * */
+
 import java.rmi.*;
 
 public interface ClientInterface extends Remote {

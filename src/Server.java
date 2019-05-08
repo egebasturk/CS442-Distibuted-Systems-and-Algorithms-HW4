@@ -1,3 +1,8 @@
+/**
+ * @author Alp Ege Basturk
+ * RMI Server Implementation
+ * */
+
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -12,8 +17,7 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
     private List<String>  toBeMatchedList;
     private Queue<String> queue;
     private HashMap<String , String > clients;
-    final private Object listLock = new Object();
-    final private Object flagLock = new Object();
+    final private Object listLock = new Object(); // Main sync. lock
     private Registry myRegistry;
     private boolean interruptFlag = false;
 
@@ -29,23 +33,31 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
         myRegistry = null;
 
     }
+    /**
+     * Initiates timer and creates a thread to handle the call.
+     * returns value depending on the result obtained from the thread.
+     * Threads are synchronized among themselves using wait/notify
+     * A thread waits until timeout or another thread wakes it up via notify
+     * */
     @Override
     public String match(String name, int timeoutSecs)
     {
         long start = System.nanoTime();
-        int timeOutMillis = timeoutSecs * 1000;
-        long elapsedTime;
 
+        // Create Thread
         MyRunnable myRunnable = new MyRunnable(name, timeoutSecs, start, queue);
         Thread thread = new Thread(myRunnable);
         thread.start();
         try {
+            // Synchronize
             thread.join();
         }catch (InterruptedException ie)
         {
             ie.printStackTrace();
         }
 
+        // Get results
+        // Following methods also reset values which they return
         String p1 = myRunnable.getPartner1();
         String p2 = myRunnable.getPartner2();
         if (p1 == null && p2 != null)
@@ -55,12 +67,18 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
         else
             return null;
     }
+    /**
+     * Debug to check clients connection with the server
+     * */
     @Override
     public String PrintHello(String name) throws RemoteException {
         System.out.println("Hello " + name);
         return "Hello from Server to " + name;
     }
 
+    /**
+     * Main function which init.s a server object.
+     * */
     public static void main(String args[])
     {
         try {
@@ -72,14 +90,20 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
             e.printStackTrace();
         }
     }
+
+    /**
+     * Custom thread class
+     * */
     public class MyRunnable implements Runnable
     {
+        // Variables
         String name;
         String partner1;
         String partner2;
         Queue<String > queue;
         long start;
         int timeoutSecs;
+        // Default constructor must get the arguments during creation
         MyRunnable(String name, int timeoutSecs, long start, Queue queue)
         {
             this.name = name;
@@ -89,7 +113,9 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
             partner1 = null;
             partner2 = null;
         }
-
+        /**
+         * Getter methods. Both reset the values which they return
+         * */
         public String getPartner1() {
             String tmp = partner1;
             partner1 = null;
@@ -101,11 +127,20 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
             return tmp;
         }
 
+        /**
+         * Initially callers add themselves to the queue.
+         * If there is a single element in the queue, wait is called in the loop
+         * It either times out, which is checked by the if condition with elapsed time
+         * or another thread adds one more element to the queue and wakes the sleeping
+         * thread up.
+         * */
         @Override
         public void run() {
             long start = System.nanoTime();
             int timeOutMillis = timeoutSecs * 1000;
             long elapsedTime;
+
+            /// Lock the code block.
             synchronized (listLock) {
                 queue.add(name);
                 while (queue.size() < 2) {

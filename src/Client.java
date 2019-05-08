@@ -1,3 +1,8 @@
+/**
+ * @author Alp Ege Basturk
+ * RMI Cient Implementation
+ * */
+
 import java.rmi.AccessException;
 import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
@@ -9,12 +14,10 @@ import java.util.UUID;
 
 public class Client extends UnicastRemoteObject implements ClientInterface
 {
-    private Client partnerHandle;
     private String myName;
     private Registry myRegistry;
     public Client() throws RemoteException
     {
-        partnerHandle = null;
         myName = null;
         myRegistry = null;
     }
@@ -40,6 +43,9 @@ public class Client extends UnicastRemoteObject implements ClientInterface
     {
         //System.setSecurityManager(new RMISecurityManager());
 
+        /**
+         * creates new client, binds it to the registry, searches for a match and calls handshake
+         * */
         try
         {
             Client client = new Client();

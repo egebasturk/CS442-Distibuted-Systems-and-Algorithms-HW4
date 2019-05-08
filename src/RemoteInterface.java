@@ -1,3 +1,7 @@
+/**
+ * @author Alp Ege Basturk
+ * RMI Remote Server Interface
+ * */
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
