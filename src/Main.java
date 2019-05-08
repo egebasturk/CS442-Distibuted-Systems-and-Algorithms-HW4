@@ -14,8 +14,8 @@ public class Main {
 
         ProcessBuilder builder = new ProcessBuilder(
                 javaBin, "-cp", classpath, className);
-        builder.redirectErrorStream();
-        builder.redirectError(ProcessBuilder.Redirect.INHERIT);
+        //builder.redirectErrorStream();
+        //builder.redirectError(ProcessBuilder.Redirect.INHERIT);
         builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 
         try {
@@ -30,12 +30,12 @@ public class Main {
     public static void main(String[] args) {
 	// write your code here
         ArrayList<Process> processes = new ArrayList<>();
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 5; i++) {
             Process process = initClient();
             processes.add(process);
         }
-        for (int i = 0; i < 4; i++) {
-            Process process = processes.remove(0);
+        for (int i = 0; i < 5; i++) {
+            //Process process = processes.remove(0);
             /*
             InputStreamReader inputStreamReader = new InputStreamReader(
                     process.getInputStream()

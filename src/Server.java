@@ -5,24 +5,30 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Server extends UnicastRemoteObject implements RemoteInterface
 {
     //private ArrayList<String> toBeMatchedList;
     private List<String>  toBeMatchedList;
+    private Queue<String> queue;
     private HashMap<String , String > clients;
     final private Object listLock = new Object();
     final private Object flagLock = new Object();
     private Registry myRegistry;
     boolean flag;
+    String firstOne;
 
     public Server() throws RemoteException
     {
         //toBeMatchedList = new ArrayList<String>();
         toBeMatchedList = new LinkedList<String>();
-        clients = new HashMap<String , String>();
+        queue = new ConcurrentLinkedQueue<String>();
+        //clients = new HashMap<String , String>();
         myRegistry = null;
         flag = false;
+        firstOne = null;
     }
     private String acquirePartner(String name, int timeoutSecs, long start)
     {
@@ -66,11 +72,32 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
     public String match(String name, int timeoutSecs)
     {
         long start = System.nanoTime();
-        synchronized (listLock) {
-            toBeMatchedList.add(name);
-        }
-        return acquirePartner(name, timeoutSecs, start);
+        int timeOutMillis = timeoutSecs * 1000;
+        long elapsedTime;
+        String partner1;
+        String partner2;
+        if (queue.size() < 1) {
+            queue.add(name);
+            synchronized (listLock) {
+                elapsedTime = (System.nanoTime() - start) / (int) Math.pow(10, 6);
+                try {
+                    listLock.wait(timeOutMillis - elapsedTime);
+                } catch (InterruptedException ie) {
+                    partner2 = queue.remove();
+                    return partner2;
 
+                }
+            }
+        }
+        else {
+            synchronized (listLock) {
+                partner1 = queue.remove();
+                queue.add(name);
+                listLock.notifyAll();
+                return partner1;
+            }
+        }
+        queue.remove();
 
         //String partner1 = "NON", partner2 = "NON";
         //return null;
@@ -124,6 +151,7 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
             System.out.println("Here");
             return "EndNull";
         }*/
+        return null;
     }
     @Override
     public String PrintHello(String name) throws RemoteException {
