@@ -27,10 +27,8 @@ public class Client extends UnicastRemoteObject implements ClientInterface
     public void handShake(String partnerName) throws NotBoundException, AccessException, RemoteException
     {
         ClientInterface myPartner = (ClientInterface) myRegistry.lookup(partnerName);
-        /*if (myName.compareTo(partnerName) > 0) // I'm first
-            myPartner.sendMessage("Hello from " + myName + "to " + partnerName);
-        else
-            myPartner.sendMessage("Hello from " + partnerName + "to " + myName);*/
+        if (myName.compareTo(partnerName) <= 0) // I'm first or we are equal
+            myPartner.sendMessage("Hello from " + myName + " to " + partnerName);
     }
     @Override
     public void sendMessage(String message) throws RemoteException
@@ -54,7 +52,7 @@ public class Client extends UnicastRemoteObject implements ClientInterface
             client.bindMe();
 
             String result = server.match(client.myName, 5);
-            System.out.println("My[" + client.myName + "] Partner: " + result);
+            System.out.println("My{" + client.myName + "} Partner is: " + result);
             if (result != null)
             {
                 client.handShake(result);
