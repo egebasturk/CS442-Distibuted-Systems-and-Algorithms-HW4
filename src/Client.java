@@ -26,6 +26,10 @@ public class Client extends UnicastRemoteObject implements ClientInterface
     {
         myRegistry.bind(myName, this);
     }
+    /**
+     * For handshake, clients search for the name from the registry, which they were binded
+     * at the creation
+     * */
     @Override
     public void handShake(String partnerName) throws NotBoundException, AccessException, RemoteException
     {
