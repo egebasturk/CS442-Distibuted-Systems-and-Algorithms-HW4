@@ -18,13 +18,20 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
     final private Object flagLock = new Object();
     private Registry myRegistry;
     boolean flag;
+    boolean interruptFlag = false;
     String firstOne;
+
+
+    String partner1;
+    String partner2;
+
 
     public Server() throws RemoteException
     {
         //toBeMatchedList = new ArrayList<String>();
         toBeMatchedList = new LinkedList<String>();
-        queue = new ConcurrentLinkedQueue<String>();
+        //queue = new ConcurrentLinkedQueue<String>();
+        queue = new LinkedList<String>();
         //clients = new HashMap<String , String>();
         myRegistry = null;
         flag = false;
@@ -32,41 +39,24 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
     }
     private String acquirePartner(String name, int timeoutSecs, long start)
     {
-        long elapsedTime;
-        while (true) {
-            synchronized (listLock) {
-                if (toBeMatchedList.size() > 1) {
-                    String partner1 = toBeMatchedList.get(0);
-                    String partner2 = toBeMatchedList.get(0);
-                    synchronized (flagLock) {
-                        if (flag)
-                        {
-                            toBeMatchedList.remove(0);
-                            toBeMatchedList.remove(0);
-                            flag = false;
-                        }
-                        else
-                            flag = true;
-                    }
-                    if (name.equals(partner1))
-                        return partner2;
-                    else if (name.equals(partner2))
-                        return partner1;
-                    notifyAll();
-                } else {
-                    elapsedTime = (System.nanoTime() - start) / (int) Math.pow(10, 9);
-                    try {
-                        wait(timeoutSecs - elapsedTime);
-                    } catch (InterruptedException ie) {
-                        ie.printStackTrace();
-
-                    }
-                    elapsedTime = (System.nanoTime() - start) / (int) Math.pow(10, 9);
-                    if (elapsedTime >= timeoutSecs)
-                        return null;
-                }
-            }
+        MyRunnable myRunnable = new MyRunnable(name, timeoutSecs, start, queue);
+        Thread thread = new Thread(myRunnable);
+        thread.start();
+        try {
+            thread.join();
+        }catch (InterruptedException ie)
+        {
+            ie.printStackTrace();
         }
+
+        String p1 = myRunnable.getPartner1();
+        String p2 = myRunnable.getPartner2();
+        if (p1 == null && p2 != null)
+            return p2;
+        else if (p1 != null && p2 == null)
+            return p1;
+        else
+            return null;
     }
     @Override
     public String match(String name, int timeoutSecs)
@@ -74,7 +64,28 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
         long start = System.nanoTime();
         int timeOutMillis = timeoutSecs * 1000;
         long elapsedTime;
-        String partner1;
+
+        MyRunnable myRunnable = new MyRunnable(name, timeoutSecs, start, queue);
+        Thread thread = new Thread(myRunnable);
+        thread.start();
+        try {
+            thread.join();
+        }catch (InterruptedException ie)
+        {
+            ie.printStackTrace();
+        }
+
+        String p1 = myRunnable.getPartner1();
+        String p2 = myRunnable.getPartner2();
+        if (p1 == null && p2 != null)
+            return p2;
+        else if (p1 != null && p2 == null)
+            return p1;
+        else
+            return null;
+
+        //return acquirePartner(name, timeoutSecs, start);
+        /*String partner1;
         String partner2;
         if (queue.size() < 1) {
             queue.add(name);
@@ -98,60 +109,30 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
             }
         }
         queue.remove();
+*/
 
-        //String partner1 = "NON", partner2 = "NON";
-        //return null;
-        /*while (elapsedTime < timeoutSecs)
-        {
-            elapsedTime = (System.nanoTime() - start) / (int)Math.pow(10,9);
-            if (toBeMatchedList.size() >= 2)
-            {
-                partner1 = toBeMatchedList.remove(0);
-                partner2 = toBeMatchedList.remove(0);
-
-                if (name.equals(partner1))
+        /*synchronized (listLock) {
+            if (queue.size() < 1) {
+                queue.add(name);
+                try {
+                    elapsedTime = (System.nanoTime() - start) / (int) Math.pow(10, 6);
+                    listLock.wait(timeOutMillis - elapsedTime);
+                    queue.remove();
+                    return null;
+                }catch (InterruptedException ie)
                 {
+                    partner2 = queue.remove();
                     return partner2;
                 }
-                else
-                {
-                    return partner1;
-                }
             }
-        }
-        synchronized (listLock){
-            toBeMatchedList.remove(name);
-            try {
-                myRegistry.unbind(name);
-            }catch (Exception e)
-            {
-                e.printStackTrace();
-            }
-        }
-        return null;*/
-        /*while (toBeMatchedList.size() < 2)
-        {
-            long elapsedTime = (System.nanoTime() - start) / (int)Math.pow(10,9);
-            //System.out.println(elapsedTime);
-            if (elapsedTime >= timeoutSecs)
-            {
-                System.out.println("Timeout");
-                toBeMatchedList.remove(name);
-                return "TimeOutNull";
-            }
-        }
-        synchronized (listLock) {
-            String partner2 = toBeMatchedList.remove(1);
-            String partner1 = toBeMatchedList.remove(0);
-            if (name.equals(partner1)) {
-                return partner2;
-            } else if (name.equals(partner2)) {
+            else {
+                partner1 = queue.remove();
+                queue.add(name);
+                listLock.notifyAll();
                 return partner1;
             }
-            System.out.println("Here");
-            return "EndNull";
         }*/
-        return null;
+        //return null;
     }
     @Override
     public String PrintHello(String name) throws RemoteException {
@@ -170,6 +151,79 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
             server.myRegistry.rebind(sName, server);
         }catch (Exception e){
             e.printStackTrace();
+        }
+    }
+    public class MyRunnable implements Runnable
+    {
+        String name;
+        String partner1;
+        String partner2;
+        Queue<String > queue;
+        long start;
+        int timeoutSecs;
+        MyRunnable(String name, int timeoutSecs, long start, Queue queue)
+        {
+            this.name = name;
+            this.timeoutSecs = timeoutSecs;
+            this.start = start;
+            this.queue = queue;
+            partner1 = null;
+            partner2 = null;
+        }
+
+        public String getPartner1() {
+            String tmp = partner1;
+            partner1 = null;
+            return tmp;
+        }
+        public String getPartner2() {
+            String tmp = partner2;
+            partner2 = null;
+            return tmp;
+        }
+
+
+        @Override
+        public void run() {
+            long start = System.nanoTime();
+            int timeOutMillis = timeoutSecs * 1000;
+            long elapsedTime;
+            synchronized (listLock) {
+                queue.add(name);
+                while (queue.size() < 2) {
+                    try {
+                        elapsedTime = (System.nanoTime() - start) / (int) Math.pow(10, 6);
+
+                        if (elapsedTime >= timeOutMillis) {
+                            queue.poll();
+                            return;
+                        }
+                        listLock.wait(timeOutMillis - elapsedTime);
+
+                        if (interruptFlag) {
+                            partner2 = queue.poll();
+                            queue.poll();
+                            interruptFlag = false;
+                            return;
+                        }
+
+
+                    } catch (InterruptedException ie) {
+                        if (interruptFlag) {
+                            partner2 = queue.poll();
+                            interruptFlag = false;
+                            System.out.println("INTERRUPTED");
+                            return;
+                        }
+                        //return partner2;
+                    }
+                }
+                partner1 = queue.poll();
+                queue.add(name);
+                interruptFlag = true;
+                listLock.notifyAll();
+            }
+            //queue.remove();
         }
     }
 }

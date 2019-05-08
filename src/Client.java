@@ -49,7 +49,7 @@ public class Client extends UnicastRemoteObject implements ClientInterface
             RemoteInterface server = (RemoteInterface) client.myRegistry.lookup(RemoteInterface.sName);
 
             client.myName = UUID.randomUUID().toString();
-            //System.out.println(server.PrintHello(client.myName));
+            server.PrintHello(client.myName);
 
             client.bindMe();
 
