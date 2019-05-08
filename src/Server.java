@@ -11,8 +11,10 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
     //private ArrayList<String> toBeMatchedList;
     private List<String>  toBeMatchedList;
     private HashMap<String , String > clients;
-    final private Integer listLock = new Integer(1);
+    final private Object listLock = new Object();
+    final private Object flagLock = new Object();
     private Registry myRegistry;
+    boolean flag;
 
     public Server() throws RemoteException
     {
@@ -20,31 +22,58 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
         toBeMatchedList = new LinkedList<String>();
         clients = new HashMap<String , String>();
         myRegistry = null;
+        flag = false;
+    }
+    private String acquirePartner(String name, int timeoutSecs, long start)
+    {
+        long elapsedTime;
+        while (true) {
+            synchronized (listLock) {
+                if (toBeMatchedList.size() > 1) {
+                    String partner1 = toBeMatchedList.get(0);
+                    String partner2 = toBeMatchedList.get(0);
+                    synchronized (flagLock) {
+                        if (flag)
+                        {
+                            toBeMatchedList.remove(0);
+                            toBeMatchedList.remove(0);
+                            flag = false;
+                        }
+                        else
+                            flag = true;
+                    }
+                    if (name.equals(partner1))
+                        return partner2;
+                    else if (name.equals(partner2))
+                        return partner1;
+                    notifyAll();
+                } else {
+                    elapsedTime = (System.nanoTime() - start) / (int) Math.pow(10, 9);
+                    try {
+                        wait(timeoutSecs - elapsedTime);
+                    } catch (InterruptedException ie) {
+                        ie.printStackTrace();
+
+                    }
+                    elapsedTime = (System.nanoTime() - start) / (int) Math.pow(10, 9);
+                    if (elapsedTime >= timeoutSecs)
+                        return null;
+                }
+            }
+        }
     }
     @Override
     public String match(String name, int timeoutSecs)
     {
         long start = System.nanoTime();
-        long elapsedTime = (System.nanoTime() - start) / (int)Math.pow(10,9);
-        toBeMatchedList.add(name);
-        synchronized (listLock)
-        {
-            if (toBeMatchedList.size() > 1)
-            {
-
-            }
-            else{
-                try {
-                    wait(timeoutSecs);
-                }catch (InterruptedException ie)
-                {
-
-                }
-            }
+        synchronized (listLock) {
+            toBeMatchedList.add(name);
         }
+        return acquirePartner(name, timeoutSecs, start);
 
-        String partner1 = "NON", partner2 = "NON";
-        return null;
+
+        //String partner1 = "NON", partner2 = "NON";
+        //return null;
         /*while (elapsedTime < timeoutSecs)
         {
             elapsedTime = (System.nanoTime() - start) / (int)Math.pow(10,9);
