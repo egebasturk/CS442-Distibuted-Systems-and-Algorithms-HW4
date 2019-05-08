@@ -6,21 +6,16 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Server extends UnicastRemoteObject implements RemoteInterface
 {
-    //private ArrayList<String> toBeMatchedList;
     private List<String>  toBeMatchedList;
     private Queue<String> queue;
     private HashMap<String , String > clients;
     final private Object listLock = new Object();
     final private Object flagLock = new Object();
     private Registry myRegistry;
-    boolean flag;
-    boolean interruptFlag = false;
-    String firstOne;
-
+    private boolean interruptFlag = false;
 
     String partner1;
     String partner2;
@@ -28,35 +23,11 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
 
     public Server() throws RemoteException
     {
-        //toBeMatchedList = new ArrayList<String>();
         toBeMatchedList = new LinkedList<String>();
         //queue = new ConcurrentLinkedQueue<String>();
         queue = new LinkedList<String>();
-        //clients = new HashMap<String , String>();
         myRegistry = null;
-        flag = false;
-        firstOne = null;
-    }
-    private String acquirePartner(String name, int timeoutSecs, long start)
-    {
-        MyRunnable myRunnable = new MyRunnable(name, timeoutSecs, start, queue);
-        Thread thread = new Thread(myRunnable);
-        thread.start();
-        try {
-            thread.join();
-        }catch (InterruptedException ie)
-        {
-            ie.printStackTrace();
-        }
 
-        String p1 = myRunnable.getPartner1();
-        String p2 = myRunnable.getPartner2();
-        if (p1 == null && p2 != null)
-            return p2;
-        else if (p1 != null && p2 == null)
-            return p1;
-        else
-            return null;
     }
     @Override
     public String match(String name, int timeoutSecs)
@@ -83,56 +54,6 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
             return p1;
         else
             return null;
-
-        //return acquirePartner(name, timeoutSecs, start);
-        /*String partner1;
-        String partner2;
-        if (queue.size() < 1) {
-            queue.add(name);
-            synchronized (listLock) {
-                elapsedTime = (System.nanoTime() - start) / (int) Math.pow(10, 6);
-                try {
-                    listLock.wait(timeOutMillis - elapsedTime);
-                } catch (InterruptedException ie) {
-                    partner2 = queue.remove();
-                    return partner2;
-
-                }
-            }
-        }
-        else {
-            synchronized (listLock) {
-                partner1 = queue.remove();
-                queue.add(name);
-                listLock.notifyAll();
-                return partner1;
-            }
-        }
-        queue.remove();
-*/
-
-        /*synchronized (listLock) {
-            if (queue.size() < 1) {
-                queue.add(name);
-                try {
-                    elapsedTime = (System.nanoTime() - start) / (int) Math.pow(10, 6);
-                    listLock.wait(timeOutMillis - elapsedTime);
-                    queue.remove();
-                    return null;
-                }catch (InterruptedException ie)
-                {
-                    partner2 = queue.remove();
-                    return partner2;
-                }
-            }
-            else {
-                partner1 = queue.remove();
-                queue.add(name);
-                listLock.notifyAll();
-                return partner1;
-            }
-        }*/
-        //return null;
     }
     @Override
     public String PrintHello(String name) throws RemoteException {
@@ -144,8 +65,6 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
     {
         try {
             Server server = new Server();
-            //Server stub = (Server) UnicastRemoteObject.exportObject(server, 0);
-            //Registry registry = LocateRegistry.getRegistry();
             server.myRegistry = LocateRegistry.createRegistry(serverPortNumber);
 
             server.myRegistry.rebind(sName, server);
@@ -182,7 +101,6 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
             return tmp;
         }
 
-
         @Override
         public void run() {
             long start = System.nanoTime();
@@ -206,8 +124,6 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
                             interruptFlag = false;
                             return;
                         }
-
-
                     } catch (InterruptedException ie) {
                         if (interruptFlag) {
                             partner2 = queue.poll();
@@ -215,7 +131,6 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
                             System.out.println("INTERRUPTED");
                             return;
                         }
-                        //return partner2;
                     }
                 }
                 partner1 = queue.poll();
@@ -223,7 +138,6 @@ public class Server extends UnicastRemoteObject implements RemoteInterface
                 interruptFlag = true;
                 listLock.notifyAll();
             }
-            //queue.remove();
         }
     }
 }
